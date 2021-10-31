@@ -6,8 +6,7 @@
 <!-- HTML -->
 <header class="header">
     <div class="logo">
-        <img src={logoImgSrc || "🐍"} alt="logo-icon">
-        <h2>Snaky</h2>
+        <h2>🐍 Snaky</h2>
     </div>
 </header>
 
