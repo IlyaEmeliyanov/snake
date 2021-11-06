@@ -11,6 +11,8 @@
                 return "power-up-cell cell";
             case 3:
                 return "super-power-up-cell cell";
+            case 4:
+                return "danger-cell cell";
             default:
                 return "cell";
         }
@@ -52,5 +54,10 @@
     .super-power-up-cell {
         background-color: rgb(255, 234, 0);
         box-shadow: 0 0 2rem 0 rgba(232, 255, 86, 0.8);
+    }
+
+    .danger-cell {
+        background-color: rgba(125, 20, 254);
+        box-shadow: 0 0 2rem 0 rgba(255, 147, 248, 0.5);
     }
 </style>

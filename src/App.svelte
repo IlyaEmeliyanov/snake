@@ -36,10 +36,4 @@
 		font-size: 15px;
 	}
 
-	button {
-		background: transparent;
-		border: none;
-		border-radius: 5px;
-	}
-
 </style>

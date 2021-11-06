@@ -2,7 +2,11 @@
 <script>
   import Score from "./Score.svelte";
   import Timer from "./Timer.svelte";
+  import GameStatus from "./GameStatus.svelte";
   import Cell from "./Cell.svelte";
+
+  // Game vars
+  $: gameStatus = "";
 
   // Table vars
   var rows = 15;
@@ -31,72 +35,70 @@
     .fill()
     .map(() => Array(cols).fill(0));
 
-  function start() {
-    document.addEventListener("keydown", (e) => {
-      e.preventDefault();
-      key = e.key;
-    });
+  document.addEventListener("keydown", (e) => {
+    e.preventDefault();
+    key = e.key;
+  });
 
-    setInterval(() => {
+  setInterval(() => {
+    console.log(`Game status: ${gameStatus}`)
+    if (gameStatus == 'Playing') {
       if (["w", "a", "s", "d"].includes(key)) {
         updatePosition(key);
       } else {
         updatePosition(lastKey);
       }
-    }, delay);
+    } else if (gameStatus === 'Game over') {
+      gameOver();
+    }
+  }, delay);
 
-    setInterval(() => {
-      if (powerUpCoords.length <= 1) spawnPowerUp();
-    }, 2 * 1000);
-  }
+  setInterval(() => {
+    if (powerUpCoords.length <= 2) spawnPowerUp();
+  }, 0.5 * 1000);
 
   function updatePosition(key) {
-    let { x, y } = coords[0]; // head coordinates that will change
-    let { x: whiteSpaceX, y: whiteSpaceY } = coords[0]; // head coordinates that will not change
+    let head = coords[0];
+    if (head) { // if head exists then move it
+      let { x, y } = head; // head coordinates that will change
+      let { x: whiteSpaceX, y: whiteSpaceY } = coords[0]; // head coordinates that will not change
 
-    let snakeLength = coords.length;
+      powerupCollision(x, y); // describe power-up collision
 
-    for (const powerUpCoord of powerUpCoords) {
-      if (x === powerUpCoord.x && y === powerUpCoord.y) {
-        let index = powerUpCoords.indexOf(powerUpCoord);
-        for (let i = 0; i < powerUpCoord.lengthIncrease; i++) 
-          coords.push({ x, y });
-        score += powerUpCoord.scoreIncrease;
-        powerUpCoords.splice(index, 1);
+      if (key === "w" && lastKey !== "s") {
+        y = y == 0 ? rows - 1 : y - 1;
       }
-    }
+      if (key === "a" && lastKey !== "d") {
+        x = x == 0 ? cols - 1 : x - 1;
+      }
+      if (key === "s" && lastKey !== "w") {
+        y = y == rows - 1 ? 0 : y + 1;
+      }
+      if (key === "d" && lastKey !== "a") {
+        x = x == cols - 1 ? 0 : x + 1;
+      }
+      lastKey = key;
 
-    if (key === "w" && lastKey !== "s") {
-      y = y == 0 ? rows - 1 : y - 1;
-    }
-    if (key === "a" && lastKey !== "d") {
-      console.log(`Key: ${key}`);
-      console.log(`Last key: ${lastKey}`);
-      x = x == 0 ? cols - 1 : x - 1;
-    }
-    if (key === "s" && lastKey !== "w") {
-      y = y == rows - 1 ? 0 : y + 1;
-    }
-    if (key === "d" && lastKey !== "a") {
-      x = x == cols - 1 ? 0 : x + 1;
-    }
-    lastKey = key;
+      // Change the other coordinates
+      let snakeLength = coords.length;
+      for (let i = 0; i < snakeLength - 1; i++) {
+        // Reassign to new coordinates
+        coords[i] = { x, y };
 
-    for (let i = 0; i < snakeLength - 1; i++) {
-      // Reassign to new coordinates
-      coords[i] = { x, y };
+        // Rerender the board
+        board[coords[i].y][coords[i].x] = 1;
+        board[whiteSpaceY][whiteSpaceX] = 0;
 
-      // Rerender the board
-      board[coords[i].y][coords[i].x] = 1;
-      board[whiteSpaceY][whiteSpaceX] = 0;
+        // Change the new position of the next block
+        x = whiteSpaceX;
+        y = whiteSpaceY;
 
-      // Change the new position of the next block
-      x = whiteSpaceX;
-      y = whiteSpaceY;
-
-      // Change also the last position of the white space
-      whiteSpaceX = coords[i + 1].x;
-      whiteSpaceY = coords[i + 1].y;
+        // Change also the last position of the white space
+        whiteSpaceX = coords[i + 1].x;
+        whiteSpaceY = coords[i + 1].y;
+      }
+    } else {
+      gameStatus = 'Game over';
     }
   }
 
@@ -104,54 +106,124 @@
     const choice = Math.floor(Math.random() * 4) + 2;
     let x = Math.floor(Math.random() * cols);
     let y = Math.floor(Math.random() * rows);
+
+    for (let coord of coords) {
+      if (coord.x === x && coord.y === y) {
+        console.log(`Equal x and y: ${x} ${y}`);
+        while (coord.x !== x && coord.y !== y) {
+          x = Math.floor(Math.random() * cols);
+          y = Math.floor(Math.random() * rows);
+        }
+      }
+    }
+
     switch (choice) {
-      case 2:
-        powerUpCoords.push({ x, y, scoreIncrease: 10, lengthIncrease: 1 });
+      case 2: // for green
+        powerUpCoords.push({
+          x,
+          y,
+          scoreIncrease: 10,
+          lengthIncrease: 1,
+          id: 2,
+        });
         board[y][x] = 2;
         break;
-      case 3:
-        powerUpCoords.push({ x, y, scoreIncrease: 50, lengthIncrease: 2 });
+      case 3: // for yellow
+        powerUpCoords.push({
+          x,
+          y,
+          scoreIncrease: 50,
+          lengthIncrease: 2,
+          id: 3,
+        });
         board[y][x] = 3;
         break;
-      case 4:
-        break;
       default:
-        powerUpCoords.push({ x, y });
-        board[y][x] = 2;
-
+        // for pink one
+        powerUpCoords.push({
+          x,
+          y,
+          scoreIncrease: -20,
+          lengthIncrease: -2,
+          id: 4,
+        });
+        board[y][x] = 4;
         break;
     }
   }
+  function powerupCollision(x, y) {
+    // Trigger power-up collision
+    for (const powerUpCoord of powerUpCoords) {
+      if (x === powerUpCoord.x && y === powerUpCoord.y) {
+        let index = powerUpCoords.indexOf(powerUpCoord);
+        for (let i = 0; i < powerUpCoord.lengthIncrease; i++)
+          coords.push({ x, y });
 
-  function restart() {}
+        const scoreIncrease = powerUpCoord.scoreIncrease;
+        const newScore = score + scoreIncrease;
+        if (newScore >= 0) score = newScore;
+        powerUpCoords.splice(index, 1);
 
-  function playPause() {
-    console.log("game paused");
+        if (powerUpCoord?.id === 4) {
+          const deadCoord = coords.pop();
+          const deadCoord2 = coords.pop();
+          if (coords.length > 1) {
+            board[deadCoord.y][deadCoord.x] = 0;
+            board[deadCoord2.y][deadCoord2.x] = 0;
+          } else {
+            gameOver();
+            return;
+          }
+        }
+      }
+    }
   }
 
-  start();
+  function restart() {
+    gameStatus = "Playing";
+    coords = [{ x: 2, y: 0 },
+    { x: 1, y: 0 },
+    { x: 0, y: 0 }];
+    board = Array(rows)
+    .fill()
+    .map(() => Array(cols).fill(0));
+    powerUpCoords = [];
+  }
+
+  function playPause() {}
+
+  function gameOver() {
+    gameStatus = "Game over";
+  }
+
+  // start();
 </script>
 
 <!-- HTML -->
-<div class="game">
-  <div class="status">
-    <Score {score} length={coords.length - 1} />
-    <div style="display: flex; justify-content: center; gap: 10px;">
-      <button on:click={restart()} class="btn-status"
-        ><img src="/images/refresh.svg" alt="refresh-icon" /></button
-      >
-      <button on:click={playPause()} class="btn-status"
-        ><img src="/images/pause.svg" alt="pause-icon" /></button
-      >
+<div>
+  {#if gameStatus == "Game over" || gameStatus == "You win"}
+    <GameStatus  {restart} {gameStatus} />
+  {/if}
+  <div class="game">
+    <div class="status">
+      <Score {score} length={coords.length - 1} />
+      <div style="display: flex; justify-content: center; gap: 10px;">
+        <button on:click={restart} class="btn-status"
+          ><img src="/images/refresh.svg" alt="refresh-icon" /></button
+        >
+        <button on:click={playPause()} class="btn-status"
+          ><img src="/images/pause.svg" alt="pause-icon" /></button
+        >
+      </div>
+      <Timer delay={time} />
     </div>
-    <Timer delay={time} />
-  </div>
-  <div class="board">
-    {#each board as row}
-      {#each row as col}
-        <Cell number={col} />
+    <div class="board">
+      {#each board as row}
+        {#each row as col}
+          <Cell number={col} />
+        {/each}
       {/each}
-    {/each}
+    </div>
   </div>
 </div>
 
@@ -163,6 +235,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
   }
+
   .board {
     display: grid;
     grid-template-columns: repeat(15, 40px);
@@ -183,8 +256,5 @@
     padding: 1rem;
     border-radius: 0.5rem;
     background-color: rgb(37, 35, 47);
-  }
-  img svg path {
-    color: #a8a1b8;
   }
 </style>
