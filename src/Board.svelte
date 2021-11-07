@@ -116,7 +116,7 @@
   }
 
   function spawnPowerUp() {
-    let choice = Math.floor(Math.random() * 5) + 2; // spawning a random block at the beginning
+    let choice = Math.floor(Math.random() * 5) + 1; // spawning a random block at the beginning
     let x = Math.floor(Math.random() * cols);
     let y = Math.floor(Math.random() * rows);
 
@@ -155,6 +155,27 @@
         });
         board[y][x] = 3;
         break;
+      case 4:
+        // for pink one
+        powerUpCoords.push({
+          x,
+          y,
+          scoreIncrease: -20,
+          lengthIncrease: -2,
+          id: 4,
+        });
+        board[y][x] = 4;
+        break;
+      case 5:
+        // for blue
+        powerUpCoords.push({
+          x,
+          y,
+          scoreIncrease: 0,
+          lengthIncrease: 1,
+          id: 5
+        });
+        board[y][x] = 5;
       default:
         // for pink one
         powerUpCoords.push({
